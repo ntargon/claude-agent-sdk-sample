@@ -1,5 +1,5 @@
 # /// script
-# dependencies = ["anthropic"]
+# dependencies = ["anthropic", "python-dotenv"]
 # requires-python = ">=3.9"
 # ///
 
@@ -10,21 +10,23 @@ Claude API サンプルスクリプト
     uv run claude_sample.py
 
 事前準備:
-    環境変数 ANTHROPIC_API_KEY に API キーを設定してください。
-    export ANTHROPIC_API_KEY="your-api-key-here"
-
-    Alibaba Cloud DashScope を使用する場合は、
-    ANTHROPIC_BASE_URL も設定してください。
+    .env.example を .env にコピーして API キーを設定してください。
+    cp .env.example .env
 """
 
-import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# .env ファイルから環境変数を読み込む
+env_path = Path(__file__).parent / ".env"
+load_dotenv(env_path)
+
 from anthropic import Anthropic
 
 
 def main():
     # API クライアントの初期化
-    # 環境変数 ANTHROPIC_API_KEY から自動的に API キーを取得
-    # ANTHROPIC_BASE_URL が設定されていれば、自動的にそのエンドポイントを使用
+    # 環境変数 ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL を自動的に取得
     client = Anthropic()
 
     # メッセージの送信
