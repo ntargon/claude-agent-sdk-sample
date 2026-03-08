@@ -35,7 +35,7 @@ def main():
         messages=[
             {
                 "role": "user",
-                "content": "Hello, Claude! Python から挨拶しています。",
+                "content": "Hello! Python から挨拶しています。",
             }
         ],
         model="qwen3.5-plus",
@@ -43,7 +43,14 @@ def main():
 
     # レスポンスの表示
     print("レスポンス:")
-    print(message.content[0].text)
+    for block in message.content:
+        # ThinkingBlock は text 属性を持たないので型をチェック
+        if hasattr(block, "text"):
+            print(block.text)
+        elif hasattr(block, "thinking"):
+            print("<think>")
+            print(block.thinking)
+            print("</think>")
 
 
 if __name__ == "__main__":
