@@ -38,7 +38,7 @@ def main():
                 "content": "Hello, Claude! Python から挨拶しています。",
             }
         ],
-        model="claude-opus-4-6-20251101",
+        model="qwen3.5-plus",
     )
 
     # レスポンスの表示
