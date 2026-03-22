@@ -1,0 +1,13 @@
+[project]
+name = "claude-agent-sdk-sample"
+version = "0.1.0"
+description = "Claude Agent SDK サンプルプロジェクト"
+requires-python = ">=3.10"
+dependencies = [
+    "claude-agent-sdk",
+    "python-dotenv",
+    "anthropic",
+]
+
+[tool.uv]
+dev-dependencies = []

@@ -1,8 +1,3 @@
-# /// script
-# dependencies = ["claude-agent-sdk", "python-dotenv"]
-# requires-python = ">=3.10"
-# ///
-
 """
 Hooks Agent - Claude Agent SDK サンプル
 
@@ -18,97 +13,22 @@ Hooks Agent - Claude Agent SDK サンプル
 """
 
 import asyncio
-import json
-from datetime import datetime
 from pathlib import Path
-from dotenv import load_dotenv
-from typing import Any
 
-# .env ファイルから環境変数を読み込む
-env_path = Path(__file__).parent / ".env"
-load_dotenv(env_path)
-
+from utils import load_project_env, display_agent_message
+from utils.hooks import create_bash_validator, create_tool_logger, save_tool_log
 from claude_agent_sdk import (
     query,
     ClaudeAgentOptions,
     AssistantMessage,
     ResultMessage,
-    TextBlock,
-    ToolUseBlock,
 )
+
+load_project_env()
 
 
 # ツール使用ログを保存するリスト
-tool_usage_log: list[dict[str, Any]] = []
-
-
-async def validate_bash_command(
-    input_data: dict[str, Any],
-) -> dict[str, Any]:
-    """
-    PreToolUse フック：Bash ツールのコマンドを検証し、危険なコマンドをブロックする
-    """
-    tool_name = input_data.get("tool_name", "")
-    tool_input = input_data.get("tool_input", {})
-
-    # Bash ツール以外は何もしない
-    if tool_name != "Bash":
-        return {}
-
-    command = tool_input.get("command", "")
-
-    # ブロックするコマンドパターン
-    block_patterns = [
-        "rm -rf /",
-        "rm -rf ~",
-        "sudo rm",
-        "mkfs",
-        "dd if=/dev/zero",
-        ":(){:|:&};:",  # fork bomb
-        "> /dev/sda",
-        "chmod -R 777 /",
-    ]
-
-    for pattern in block_patterns:
-        if pattern in command:
-            print(f"\n🚫 フック：危険なコマンドをブロックしました")
-            print(f"   コマンド：{command}")
-            print(f"   理由：パターン '{pattern}' が含まれています")
-
-            return {
-                "hookSpecificOutput": {
-                    "hookEventName": "PreToolUse",
-                    "permissionDecision": "deny",
-                    "permissionDecisionReason": f"セキュリティポリシーによりブロック：'{pattern}' を含むコマンドは許可されていません",
-                }
-            }
-
-    # 許可するコマンド
-    return {}
-
-
-async def log_tool_usage(
-    input_data: dict[str, Any],
-) -> dict[str, Any]:
-    """
-    PostToolUse フック：すべてのツールの使用をログ記録する
-    """
-    tool_name = input_data.get("tool_name", "Unknown")
-    tool_input = input_data.get("tool_input", {})
-    timestamp = datetime.now().isoformat()
-
-    # ログエントリを作成
-    log_entry = {
-        "timestamp": timestamp,
-        "tool_name": tool_name,
-        "tool_input": tool_input,
-    }
-
-    tool_usage_log.append(log_entry)
-
-    print(f"\n📝 ログ記録：{tool_name} が使用されました")
-
-    return {}
+tool_usage_log: list[dict] = []
 
 
 async def main():
@@ -125,6 +45,10 @@ async def main():
     print("  2. 危険なコマンド：rm -rf / (ブロックされるはず)")
     print()
 
+    # フックの作成
+    validate_bash_command = create_bash_validator()
+    log_tool_usage = create_tool_logger(tool_usage_log)
+
     # エージェントの実行
     async for message in query(
         prompt="""
@@ -138,29 +62,17 @@ async def main():
         options=ClaudeAgentOptions(
             allowed_tools=["Bash", "Read"],
             permission_mode="acceptEdits",
-            model="qwen3.5-plus",  # DashScope 対応
+            model="qwen3.5-plus",
             # フックの設定
             hooks={
                 "PreToolUse": [
-                    # Bash ツールの名前に対して部分一致でマッチ
                     ("Bash", validate_bash_command),
-                    # すべてのツールにマッチ（空文字は全てのツールにマッチ）
                     ("", log_tool_usage),
                 ],
             },
         ),
     ):
-        # メッセージの処理と表示
-        if isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    text = block.text
-                    if text.strip():
-                        print(text)
-                elif isinstance(block, ToolUseBlock):
-                    print(f"\n🔧 ツール使用：{block.name}")
-        elif isinstance(message, ResultMessage):
-            print(f"\n✅ 完了：{message.subtype}")
+        display_agent_message(message)
 
     # ログの表示
     print("\n" + "=" * 60)
@@ -170,12 +82,11 @@ async def main():
     for entry in tool_usage_log:
         print(f"\n[{entry['timestamp']}]")
         print(f"  ツール：{entry['tool_name']}")
-        print(f"  入力：{json.dumps(entry['tool_input'], ensure_ascii=False)[:100]}...")
+        print(f"  入力：{str(entry['tool_input'])[:100]}...")
 
     # ログファイルへの保存
-    log_file = Path(__file__).parent / "tool_usage_log.json"
-    log_file.write_text(json.dumps(tool_usage_log, indent=2, ensure_ascii=False))
-    print(f"\n📁 ログを {log_file.name} に保存しました")
+    log_filename = save_tool_log(tool_usage_log)
+    print(f"\n📁 ログを {log_filename} に保存しました")
 
 
 if __name__ == "__main__":

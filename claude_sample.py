@@ -1,8 +1,3 @@
-# /// script
-# dependencies = ["anthropic", "python-dotenv"]
-# requires-python = ">=3.9"
-# ///
-
 """
 Claude API サンプルスクリプト
 
@@ -14,14 +9,10 @@ Claude API サンプルスクリプト
     cp .env.example .env
 """
 
-from pathlib import Path
-from dotenv import load_dotenv
-
-# .env ファイルから環境変数を読み込む
-env_path = Path(__file__).parent / ".env"
-load_dotenv(env_path)
-
+from utils import load_project_env
 from anthropic import Anthropic
+
+load_project_env()
 
 
 def main():

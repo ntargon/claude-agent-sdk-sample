@@ -1,8 +1,3 @@
-# /// script
-# dependencies = ["claude-agent-sdk", "python-dotenv"]
-# requires-python = ">=3.10"
-# ///
-
 """
 Bug Finder Agent - Claude Agent SDK サンプル
 
@@ -18,12 +13,8 @@ Bug Finder Agent - Claude Agent SDK サンプル
 
 import asyncio
 from pathlib import Path
-from dotenv import load_dotenv
 
-# .env ファイルから環境変数を読み込む
-env_path = Path(__file__).parent / ".env"
-load_dotenv(env_path)
-
+from utils import load_project_env, display_agent_message
 from claude_agent_sdk import (
     query,
     ClaudeAgentOptions,
@@ -32,6 +23,8 @@ from claude_agent_sdk import (
     TextBlock,
     ToolUseBlock,
 )
+
+load_project_env()
 
 
 # テスト用のバグを含んだコード（必要に応じて作成）
@@ -84,27 +77,22 @@ async def main():
 見つけたバグをすべて修正し、安全なコードにしてください。
 """,
         options=ClaudeAgentOptions(
-            allowed_tools=["Read", "Edit", "Glob"],  # 使用するツール
-            permission_mode="acceptEdits",  # ファイル編集を自動承認
+            allowed_tools=["Read", "Edit", "Glob"],
+            permission_mode="acceptEdits",
         ),
     ):
         # メッセージの処理と表示
-        if isinstance(message, AssistantMessage):
+        if isinstance(message, (AssistantMessage, ResultMessage, SystemMessage)):
+            display_agent_message(message)
+        elif isinstance(message, AssistantMessage):
             for block in message.content:
                 if isinstance(block, TextBlock):
-                    # Claude の思考プロセスを表示
-                    text = block.text
-                    if text.strip():  # 空行はスキップ
-                        print(text)
+                    print(block.text)
                 elif isinstance(block, ToolUseBlock):
-                    # ツールの使用を表示
                     print(f"\n🔧 ツール使用：{block.name}")
                     if hasattr(block, "input") and block.input:
-                        # ファイル編集の場合は簡潔に表示
                         if block.name == "Edit":
                             print(f"   ファイルを編集中...")
-        elif isinstance(message, ResultMessage):
-            print(f"\n✅ 完了：{message.subtype}")
 
     # 結果の確認
     print("\n" + "=" * 60)

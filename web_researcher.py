@@ -1,10 +1,5 @@
-# /// script
-# dependencies = ["claude-agent-sdk", "python-dotenv"]
-# requires-python = ">=3.10"
-# ///
-
 """
-Web Research Agent - Claude Agent SDK サンプル
+Web Researcher Agent - Claude Agent SDK サンプル
 
 このサンプルは、Brave Search MCP を使用して Web 検索による情報収集を行い、
 レポートを生成するエージェントを実装します。
@@ -24,12 +19,8 @@ Web Research Agent - Claude Agent SDK サンプル
 import asyncio
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-# .env ファイルから環境変数を読み込む
-env_path = Path(__file__).parent / ".env"
-load_dotenv(env_path)
-
+from utils import load_project_env, display_agent_message
 from claude_agent_sdk import (
     query,
     ClaudeAgentOptions,
@@ -39,6 +30,8 @@ from claude_agent_sdk import (
     TextBlock,
     ToolUseBlock,
 )
+
+load_project_env()
 
 
 async def main():
@@ -85,47 +78,7 @@ async def main():
             permission_mode="acceptEdits",
         ),
     ):
-        # システムメッセージで MCP サーバーの接続状態を確認
-        if isinstance(message, SystemMessage) and message.subtype == "init":
-            mcp_servers = message.data.get("mcp_servers", [])
-            print("MCP サーバー接続状態:")
-            for server in mcp_servers:
-                status = server.get("status", "unknown")
-                name = server.get("name", "unknown")
-                print(f"  - {name}: {status}")
-            print()
-
-        # メッセージの処理と表示
-        if isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    text = block.text
-                    # 長いテキストは適度に改行
-                    if text.strip():
-                        lines = text.split('\n')
-                        for line in lines:
-                            if len(line) > 80:
-                                # 長い行は折り返し表示
-                                for i in range(0, len(line), 80):
-                                    print(line[i:i+80])
-                            else:
-                                print(line)
-                elif isinstance(block, ToolUseBlock):
-                    tool_name = block.name
-                    print(f"\n🔧 ツール使用：{tool_name}")
-                    if hasattr(block, "input") and block.input:
-                        # Brave Search の場合は検索クエリを表示
-                        if tool_name.startswith("mcp__brave-search__"):
-                            query_text = block.input.get("query", "")
-                            if query_text:
-                                print(f"   検索クエリ：{query_text[:50]}...")
-                        # Write の場合はファイル名を表示
-                        elif tool_name == "Write":
-                            file_path = block.input.get("file_path", "")
-                            if file_path:
-                                print(f"   書き込みファイル：{file_path}")
-        elif isinstance(message, ResultMessage):
-            print(f"\n✅ 完了：{message.subtype}")
+        display_agent_message(message)
 
     # レポートファイルの確認
     report_file = Path(__file__).parent / "research_report.md"

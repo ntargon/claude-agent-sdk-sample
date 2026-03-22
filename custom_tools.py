@@ -1,8 +1,3 @@
-# /// script
-# dependencies = ["claude-agent-sdk", "python-dotenv"]
-# requires-python = ">=3.10"
-# ///
-
 """
 Custom Tools Agent - Claude Agent SDK サンプル
 
@@ -19,14 +14,9 @@ Custom Tools Agent - Claude Agent SDK サンプル
 
 import asyncio
 import random
-from pathlib import Path
-from dotenv import load_dotenv
 from typing import Any
 
-# .env ファイルから環境変数を読み込む
-env_path = Path(__file__).parent / ".env"
-load_dotenv(env_path)
-
+from utils import load_project_env, display_agent_message
 from claude_agent_sdk import (
     query,
     tool,
@@ -34,9 +24,9 @@ from claude_agent_sdk import (
     ClaudeAgentOptions,
     AssistantMessage,
     ResultMessage,
-    TextBlock,
-    ToolUseBlock,
 )
+
+load_project_env()
 
 
 # カスタムツールの定義
@@ -158,7 +148,7 @@ async def convert_currency(args: dict[str, Any]) -> dict[str, Any]:
             "content": [
                 {
                     "type": "text",
-                    "text": f"Error: サポートされていない通貨 - {from_currency} or {to_currency}"
+                    "text": f"Error: サポートしていない通貨 - {from_currency} or {to_currency}"
                 }
             ]
         }
@@ -208,21 +198,11 @@ async def main():
 """,
         options=ClaudeAgentOptions(
             allowed_tools=["Read", "Write", "Bash", "mcp__custom-tools__*"],
-            mcp_servers={"custom-tools": custom_server},  # カスタム MCP サーバーを追加
+            mcp_servers={"custom-tools": custom_server},
             permission_mode="acceptEdits",
         ),
     ):
-        # メッセージの処理と表示
-        if isinstance(message, AssistantMessage):
-            for block in message.content:
-                if isinstance(block, TextBlock):
-                    text = block.text
-                    if text.strip():
-                        print(text)
-                elif isinstance(block, ToolUseBlock):
-                    print(f"\n🔧 ツール使用：{block.name}")
-        elif isinstance(message, ResultMessage):
-            print(f"\n✅ 完了：{message.subtype}")
+        display_agent_message(message)
 
 
 if __name__ == "__main__":
