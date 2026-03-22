@@ -21,6 +21,7 @@ uv run <agent>.py    # Run an agent
 | `claude_sample.py` | Basic Claude API integration |
 | `custom_tools.py` | Custom MCP tools (weather, calculator, currency) |
 | `hooks_sample.py` | Pre/Post tool hooks for security and logging |
+| `interactive_agent.py` | **ClaudeSDKClient** で対話型チャット（セッション状態維持） |
 | `web_researcher.py` | Web search and report generation with Brave Search |
 
 ## Architecture
